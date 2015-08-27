@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>Login</title>
+
+    <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+    <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+</head>
+
+<body style="background-color: #F0F0F0; padding-left: 5%; padding-right: 5%; padding-top: 2%">
+
+<div style="width: 60%; padding-left: 35%" align="left">
+    <fieldset>
+        <legend align="center">Login</legend>
+        <form id="form" action="/login/" method="post">
+            {% csrf_token %}
+            <table>
+                <tr>
+                    <td>Username:</td>
+                    <td><input type="text" id="username" name="username"></td>
+                </tr>
+                <tr>
+                    <td>Password:</td>
+                    <td><input type="password" id="password" name="password"></td>
+                </tr>
+                <tr>
+                    <td></td>
+                    <td align="right"><a href="/signup/">signup?</a>
+                    <a href="/forgot_password/">forgot password?</a></td>
+                    <td><input type="submit" value="Login" id="submit_btn"></td>
+                </tr>
+                <tr>
+                    <td></td>
+                    <td style="color:rgb(255, 0, 0)"> {{ error }} </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+</div>
+</body>
+</html>

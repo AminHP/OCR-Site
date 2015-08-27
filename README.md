@@ -1,1 +1,3 @@
 # OcrSite
+#####single character ocr project with django and residual artificial neural network(RNN) ...
+

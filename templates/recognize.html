@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>OCR</title>
+
+    <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+    <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+
+
+    <script type='text/javascript'>
+        $(document).ready(function () {
+            context = document.getElementById('canvas').getContext("2d");
+
+            $('#canvas').mousedown(function (e) {
+                var mouseX = e.pageX - this.offsetLeft;
+                var mouseY = e.pageY - this.offsetTop;
+
+                paint = true;
+                addClick(e.pageX - this.offsetLeft, e.pageY - this.offsetTop);
+                redraw();
+            });
+
+            $('#canvas').mousemove(function (e) {
+                if (paint) {
+                    addClick(e.pageX - this.offsetLeft, e.pageY - this.offsetTop, true);
+                    redraw();
+                }
+            });
+
+            $('#canvas').mouseup(function (e) {
+                paint = false;
+            });
+
+            $('#canvas').mouseleave(function (e) {
+                paint = false;
+            });
+
+            clickX = new Array();
+            clickY = new Array();
+            clickDrag = new Array();
+            var paint;
+
+            function addClick(x, y, dragging) {
+                clickX.push(x);
+                clickY.push(y);
+                clickDrag.push(dragging);
+            }
+
+            function redraw() {
+                context.clearRect(0, 0, context.canvas.width, context.canvas.height); // Clears the canvas
+
+                context.strokeStyle = "#df4b26";
+                context.lineJoin = "round";
+                context.lineWidth = 5;
+
+                for (var i = 0; i < clickX.length; i++) {
+                    context.beginPath();
+                    if (clickDrag[i] && i) {
+                        context.moveTo(clickX[i - 1], clickY[i - 1]);
+                    } else {
+                        context.moveTo(clickX[i] - 1, clickY[i]);
+                    }
+                    context.lineTo(clickX[i], clickY[i]);
+                    context.closePath();
+                    context.stroke();
+                }
+            }
+        });
+    </script>
+
+    <script type="text/javascript">
+        function check() {
+            var dataURL = document.getElementById('canvas').toDataURL();
+            $.post("/ocr/",
+                    {
+                        'action': 'check',
+                        'canvas': dataURL
+                    },
+                    function (data, status) {
+                        if (status == "success") {
+                            document.getElementById("log_check").innerHTML = data;
+                            document.getElementById("log_check").style = "display:none";
+                            $("#log_check").show(300);
+                        }
+                        else{
+                            document.getElementById("log_check").innerHTML = "error";
+                        }
+                    });
+        }
+    </script>
+
+    <script type="text/javascript">
+        function add() {
+            var dataURL = document.getElementById('canvas').toDataURL();
+            if (document.getElementById('char_canvas').value == '') {
+                document.getElementById("log_add").innerHTML = 'assign a character to pattern';
+                document.getElementById("log_add").style = "display:none";
+                $("#log_add").show(300)
+            }
+            else
+                $.post("/ocr/",
+                        {
+                            'action': 'add',
+                            'canvas': dataURL,
+                            'char'  : document.getElementById('char_canvas').value
+                        },
+                        function (data, status) {
+                            if (status == "success") {
+                                if (data.substr(0, 5) != 'error')
+                                    clearCanvas();
+                                document.getElementById("log_add").innerHTML = data;
+                                document.getElementById("log_add").style = "display:none";
+                                $("#log_add").show(300);
+                            }
+                            else{
+                                document.getElementById("log_add").innerHTML = "error";
+                            }
+                        });
+        }
+    </script>
+
+    <script type="text/javascript">
+        function train() {
+            document.getElementById("log_trainer").innerHTML = 'training ...';
+            var max_error = document.getElementById("max_error").value;
+            $.post("/ocr_train/",
+                    {
+                        'action': 'train',
+                        'max_error': max_error
+                    },
+                    function (data, status) {
+                        if (status == "success") {
+                            document.getElementById("log_trainer").innerHTML = data;
+                            if (data.substr(0, 5) == 'error') {
+                                document.getElementById("log_error").innerHTML = "";
+                            }
+                            else {
+                                get_error();
+                                //document.getElementById("log_error").style = "display:none";
+                                //$("#log_error").show(300);
+                            }
+                        }
+                        else{
+                            document.getElementById("log_trainer").innerHTML = "error";
+                        }
+                    });
+            setInterval(function() {if (document.getElementById("log_trainer").innerHTML == 'training ...') get_error();}, 2000);
+            document.getElementById("log_error").style = "display:none";
+            $("#log_error").show(300);
+        }
+
+        function reset() {
+            $.post("/ocr_train/",
+                    {
+                        'action': 'reset'
+                    },
+                    function (data, status) {
+                        if (status == "success") {
+                            document.getElementById("log_trainer").innerHTML = data;
+                            document.getElementById("log_trainer").style = "display:none";
+                            $("#log_trainer").show(300);
+                        }
+                        else{
+                            document.getElementById("log_trainer").innerHTML = "error";
+                        }
+                    });
+            clearAll();
+        }
+    </script>
+
+    <script type="text/javascript">
+        function get_error() {
+            $.post("/ocr_get_error/",
+                    {},
+                    function (data, status) {
+                        if (status == "success") {
+                            document.getElementById("log_error").innerHTML = "error = " + data;
+                        }
+                        else {
+                            document.getElementById("log_error").innerHTML = "error = NULL";
+                        }
+                    });
+        }
+    </script>
+
+    <script type="text/javascript">
+        function clearCanvas() {
+            canvas = document.getElementById('canvas');
+            canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+
+            clickX = new Array();
+            clickY = new Array();
+            clickDrag = new Array();
+        }
+
+        function clearCheck(){
+            clearCanvas();
+            $("#log_check").hide(800);
+            //document.getElementById('log_check').innerHTML = '';
+        }
+
+        function clearAll(){
+            clearCanvas();
+            $("#log_check").hide(800);
+            $("#log_add").hide(800);
+            $("#log_trainer").hide(800);
+            $("#log_error").hide(800);
+
+            //document.getElementById('log_check').innerHTML = '';
+            //document.getElementById('log_add').innerHTML = '';
+            //document.getElementById('log_trainer').innerHTML = '';
+            //document.getElementById('log_error').innerHTML = '';
+        }
+    </script>
+
+    <style>
+        fieldset.default {
+            display: block !important;
+            margin-left: 2px !important;
+            margin-right: 2px !important;
+            padding-top: 0.35em !important;
+            padding-bottom: 0.625em !important;
+            padding-left: 0.75em !important;
+            padding-right: 0.75em !important;
+            border: 2px groove (internal value) !important;
+            background-color: lightskyblue;
+        }
+    </style>
+</head>
+
+<body style="background-color: #F0F0F0; padding-left: 5%; padding-right: 5%; padding-top: 2%">
+
+    <div align="right">
+        <form action="/logout/" method="post">
+            {% csrf_token %}
+            <b>{{ user_login }}</b>
+            <input type="submit" value="logout" class="btn btn-danger">
+        </form>
+    </div>
+
+    <div align="center">
+        <h3>Pattern</h3>
+        <canvas id="canvas" width="500px" height="500px" style="border:2px solid #000000;"></canvas>
+    </div>
+
+    <div style="margin-left: 10%; margin-top: 5%">
+
+        <div align="center">
+            <fieldset style="width: 25%; float: left" class="default">
+                <button style="float: left" onclick="check()">check</button>
+                <div align="right">
+                    <button onclick="clearCheck()">clear</button>
+                </div>
+                <p id="log_check"></p>
+            </fieldset>
+        </div>
+
+        <div align="center">
+            <fieldset style="width: 25%; float: left" class="default">
+                <button style="float: left" onclick="add()">add</button>
+                <div align="right">
+                    <label> char:</label><input id="char_canvas" size="1px" type="text">
+                </div>
+                <p id="log_add"></p>
+            </fieldset>
+        </div>
+
+        <div>
+            <fieldset style="width: 30%; float: left" class="default">
+                <div style="float: left">
+                    <button onclick="train()">train</button>
+                    <label> max error:</label><input id="max_error" size="3px" type="text" value="1.0">
+                </div>
+                <div align="right">
+                    <button onclick="reset()">reset</button>
+                </div>
+
+                <div align="center">
+                    <p></p>
+                    <p align="center" id="log_trainer"></p>
+                    <p align="center" id="log_error"></p>
+                </div>
+            </fieldset>
+        </div>
+    </div>
+
+</body>
+</html>
